@@ -30,7 +30,7 @@ router.get("/comics", async (req, res) => {
             .limit(limit)
             .sort({ title: 1 });
           const count = await Comic.countDocuments(search);
-          res.json({
+          res.status(200).json({
             count: count,
             limit: limit,
             results: results,
