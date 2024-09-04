@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 
-const Characters = require("../Models/Characters");
+const Character = require("../Models/Character");
 
 router.get("/characters", async (req, res) => {
   try {
