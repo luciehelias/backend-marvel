@@ -1,47 +1,29 @@
+const axios = require("axios");
+
 const express = require("express");
 const router = express.Router();
 
-const Character = require("../Models/Character");
-const User = require("../Models/User");
-
 router.get("/characters", async (req, res) => {
   try {
-    if (!req.query.apiKey) {
-      return res
-        .status(400)
-        .json({ message: "Vous devez entrer votre API key" });
-    }
+    const limit = req.query.limit || 100;
+    const skip = req.query.skip;
+    const name = req.query.name || "";
 
-    const user = await User.findOne({ apiKey: req.query.apiKey });
-    if (!user) {
-      return res.status(400).json({ message: "Votre apiKey n'est pas valide" });
-    }
+    const characters = await axios.get(
+      `https://lereacteur-marvel-api.herokuapp.com/characters?apiKey=${process.env.YOUR_API_KEY}&limit=${limit}&skip=${skip}&name=${name}`
+    );
 
-    let filters = {};
-    if (req.query.name) {
-      filters.name = new RegExp(req.query.name, "i");
-    }
+    const charactersInfo = characters.data.results.map((character) => {
+      return {
+        id: character._id,
+        name: character.name,
+        description: character.description,
+        thumbnail: `${character.thumbnail.path}/portrait_incredible.${character.thumbnail.extension}`,
+        comics: character.comics,
+      };
+    });
 
-    const skip = Number(req.query.skip);
-    let limit;
-    if (!req.query.limit) {
-      limit = 100;
-    } else {
-      limit = Number(req.query.limit);
-    }
-
-    if (limit <= 100 && limit >= 1) {
-      const results = await Character.find(filters).skip(skip).limit(limit);
-
-      res.status(200).json({
-        limit: limit,
-        results: results,
-      });
-    } else {
-      res
-        .status(400)
-        .json({ message: "La limite doit être comprise entre 1 et 100" });
-    }
+    res.json(charactersInfo);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -49,21 +31,11 @@ router.get("/characters", async (req, res) => {
 
 router.get("/character/:characterId", async (req, res) => {
   try {
-    if (!req.query.apiKey) {
-      return res
-        .status(400)
-        .json({ message: "Vous devez entrer votre API key" });
-    }
-
-    const user = await User.findOne({ apiKey: req.query.apiKey });
-    if (!user) {
-      return res.status(400).json({ message: "Votre apiKey n'est pas valide" });
-    }
-
-    const character = await Character.findById(req.params.characterId);
-    res.json(
-      character || { message: "Cet id ne correspond à aucun comic Marvel" }
-    );
+    let url = `https://lereacteur-marvel-api.herokuapp.com/character/${req.params.characterId}?apiKey=${process.env.YOUR_API_KEY}`;
+    const response = await axios.get(url);
+    const character = response.data;
+    character.thumbnail = `${character.thumbnail.path}/portrait_incredible.${character.thumbnail.extension}`;
+    res.json(character);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

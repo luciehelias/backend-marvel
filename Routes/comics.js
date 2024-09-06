@@ -1,51 +1,40 @@
 const express = require("express");
 const router = express.Router();
-
-const Comic = require("../Models/Comic");
-const User = require("../Models/User");
-const Character = require("../Models/Character");
+const axios = require("axios");
 
 router.get("/comics", async (req, res) => {
+  const limit = req.query.limit || 100;
+  const skip = req.query.skip;
+  const title = req.query.name || "";
+
+  let url = `https://lereacteur-marvel-api.herokuapp.com/comics?apiKey=${process.env.YOUR_API_KEY}&limit=${limit}&skip=${skip}&title=${title}`;
+
   try {
-    if (!req.query.apiKey) {
-      return res
-        .status(400)
-        .json({ message: "Vous devez entrer votre API key" });
-    }
+    const response = await axios.get(url);
+    const comics = response.data;
 
-    const user = await User.findOne({ apiKey: req.query.apiKey });
-    if (!user) {
-      return res.status(400).json({ message: "Votre apiKey n'est pas valide" });
-    }
+    const comicsInfo = comics.results.map((comic) => {
+      return {
+        id: comic._id,
+        title: comic.title,
+        description: comic.description,
+        thumbnail: `${comic.thumbnail.path}/portrait_xlarge.${comic.thumbnail.extension}`,
+      };
+    });
 
-    let filters = {};
-    if (req.query.title) {
-      filters.title = new RegExp(req.query.title, "i");
-    }
+    res.json(comicsInfo);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 
-    const skip = Number(req.query.skip);
-    let limit;
-    if (!req.query.limit) {
-      limit = 100;
-    } else {
-      limit = Number(req.query.limit);
-    }
-
-    if (limit <= 100 && limit >= 1) {
-      const results = await Comic.find(filters)
-        .skip(skip)
-        .limit(limit)
-        .sort({ title: 1 });
-
-      res.status(200).json({
-        limit,
-        results,
-      });
-    } else {
-      res
-        .status(400)
-        .json({ message: "La limite doit être comprise entre 1 et 100" });
-    }
+router.get("/comic/:comicId", async (req, res) => {
+  try {
+    let url = `https://lereacteur-marvel-api.herokuapp.com/comic/${req.params.comicId}?apiKey=${process.env.YOUR_API_KEY}`;
+    const response = await axios.get(url);
+    const comic = response.data;
+    comic.thumbnail = `${comic.thumbnail.path}/portrait_incredible.${comic.thumbnail.extension}`;
+    res.json(comic);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -53,43 +42,22 @@ router.get("/comics", async (req, res) => {
 
 router.get("/comics/:characterId", async (req, res) => {
   try {
-    if (!req.query.apiKey) {
-      return res
-        .status(400)
-        .json({ message: "Vous devez entrer votre API key" });
-    }
-
-    const user = await User.findOne({ apiKey: req.query.apiKey });
-    if (!user) {
-      return res.status(400).json({ message: "Votre apiKey n'est pas valide" });
-    }
-
-    const character = await Character.findByID(req.params.characterId).populate(
-      "Comic"
+    const response = await axios.get(
+      `https://lereacteur-marvel-api.herokuapp.com/comics/${req.params.characterId}?apiKey=${process.env.YOUR_API_KEY}`
     );
-    res.json(
-      character || { message: "Cet id ne correspond à aucun personnage Marvel" }
-    );
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
+    const comics = response.data.comics;
 
-router.get("/comics/:comicId", async (req, res) => {
-  try {
-    if (!req.query.apiKey) {
-      return res
-        .status(400)
-        .json({ message: "Vous devez entrer votre API key" });
-    }
+    const comicsInfos = comics.map((comic) => {
+      return {
+        id: comic._id,
+        title: comic.title,
+        description: comic.description,
+        thumbnail: `${comic.thumbnail.path}/portrait_incredible.${comic.thumbnail.extension}`,
+      };
+    });
 
-    const user = await User.findOne({ apiKey: req.query.apiKey });
-    if (!user) {
-      return res.status(400).json({ message: "Votre apiKey n'est pas valide" });
-    }
-
-    const comic = await Comic.findById(req.params.comicId);
-    res.json(comic || { message: "Cet id ne correspond à aucun comic Marvel" });
+    console.log(comicsInfos);
+    res.json(comicsInfos);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
