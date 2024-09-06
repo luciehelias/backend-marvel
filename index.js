@@ -1,5 +1,5 @@
 const express = require("express");
-const mongoose = require("mongoose");
+
 const cors = require("cors");
 
 const app = express();
@@ -8,8 +8,6 @@ app.use(express.json());
 app.use(cors());
 
 require("dotenv").config();
-
-mongoose.connect(process.env.MONGODB_URI);
 
 const charactersRouter = require("./Routes/characters");
 const comicsRouter = require("./Routes/comics");
