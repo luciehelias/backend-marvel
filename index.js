@@ -7,7 +7,9 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-mongoose.connect("mongodb://localhost:27017/marvel");
+require("dotenv").config();
+
+mongoose.connect(process.env.MONGODB_URI);
 
 const charactersRouter = require("./Routes/characters");
 const comicsRouter = require("./Routes/comics");
@@ -25,6 +27,6 @@ app.get("*", (req, res) => {
   return res.status(404).json("This page doesn't exist");
 });
 
-app.listen(3000, () => {
+app.listen(process.env.PORT, () => {
   console.log("Server has started");
 });
